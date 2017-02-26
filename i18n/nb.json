@@ -1,8 +1,0 @@
-{
-  "@metadata": {
-    "authors": [
-      "Chameleon222"
-    ]
-  },
-  "authremoteuser-desc": "Logg inn brukere som bruker miljøvariabelen <code>REMOTE_USER</code> automatisk"
-}

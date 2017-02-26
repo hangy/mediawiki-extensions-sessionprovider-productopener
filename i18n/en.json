@@ -4,5 +4,5 @@
       "Otheus Shelling"
     ]
   },
-  "authremoteuser-desc": "Automatically logs-in users using the <code>REMOTE_USER</code> environment variable"
+  "authproductopener-desc": "Automatically logs-in users using the ProductOpener SSO session cookie"
 }

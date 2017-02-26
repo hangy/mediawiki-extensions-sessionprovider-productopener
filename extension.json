@@ -1,32 +1,31 @@
 {
-  "name": "AuthRemoteuser",
-  "namemsg": "authremoteuser-extensionname",
-  "version": "1.3.2",
-  "author": ["Otheus Shelling", "Rusty Burchfield", "James Kinsman", "Daniel Thomas", "Ian Ward Comfort", "[[mw:User:MarkAHershberger|Mark A. Hershberger]]", "Jonas Gröger", "Andreas Fink"],
-  "url": "https://www.mediawiki.org/wiki/Extension:AuthRemoteuser",
-  "descriptionmsg": "authremoteuser-desc",
+  "name": "AuthProductOpener",
+  "namemsg": "authproductopener-extensionname",
+  "version": "0.2",
+  "author": ["Otheus Shelling", "Rusty Burchfield", "James Kinsman", "Daniel Thomas", "Ian Ward Comfort", "[[mw:User:MarkAHershberger|Mark A. Hershberger]]", "Jonas Gröger", "Andreas Fink", "[[mw:User:hangy|hangy]]"],
+  "url": "https://openfoodfacts.org/",
+  "descriptionmsg": "authproductopener-desc",
   "type": "authentication",
   "license-name": "GPL-2.0+",
   "MessagesDirs": {
-    "AuthRemoteuser": [
+    "AuthProductOpener": [
       "i18n"
     ]
   },
   "AutoloadClasses": {
-    "AuthRemoteuser": "AuthRemoteuser.body.php"
+    "AuthProductOpener": "AuthProductOpener.body.php"
   },
   "SessionProviders": {
-    "AuthRemoteuser": {
-      "class": "AuthRemoteuser",
+    "AuthProductOpener": {
+      "class": "AuthProductOpener",
       "args": [{"priority": 80}]
     }
   },
   "config": {
     "_prefix": "",
-    "wgAuthRemoteuserDomain": "",
-    "wgAuthRemoteuserMailDomain": "example.wiki",
-    "wgAuthRemoteuserNotify": false,
-    "wgAuthRemoteuserEnvVariable" : "REMOTE_USER"
+    "wgAuthProductOpenerDomain": "",
+    "wgAuthProductOpenerCookieName": "session",
+    "wgAuthProductOpenerNotify": false
   },
   "manifest_version": 1
 }

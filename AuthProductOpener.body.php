@@ -24,19 +24,19 @@ use MediaWiki\Session\UserInfo;
 /**
  * Session provider for apache/authz authenticated users.
  *
- * Class AuthRemoteuser
+ * Class AuthProductOpener
  */
-class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCookie {
+class AuthProductOpener extends MediaWiki\Session\ImmutableSessionProviderWithCookie {
 
     /**
      * @param array $params Keys include:
      *  - priority: (required) Set the priority
-     *  - sessionCookieName: Session cookie name. Default is '_AuthRemoteuserSession'.
+     *  - sessionCookieName: Session cookie name. Default is '_AuthProductOpenerSession'.
      *  - sessionCookieOptions: Options to pass to WebResponse::setCookie().
      */
     public function __construct(array $params = []) {
         if (!isset($params['sessionCookieName'])) {
-            $params['sessionCookieName'] = '_AuthRemoteuserSession';
+            $params['sessionCookieName'] = '_AuthProductOpenerSession';
         }
         parent::__construct( $params );
 
@@ -61,8 +61,8 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
         $id = $this->getSessionIdFromCookie($request);
         // #6 assign a new sessionid if the id is null or if the session is no longer valid
         if ((null === $id)||(!MediaWiki\Session\SessionManager::singleton()->getSessionById($id))) {
-            $username = $this->getRemoteUsername();
-            $sessionInfo = $this->newSessionForRequest($username, $request);
+            $poUserInfo = $this->getRemoteUserInfo();
+            $sessionInfo = $this->newSessionForRequest($poUserInfo, $request);
 
             return $sessionInfo;
         }
@@ -85,20 +85,29 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
     }
 
     /**
-     * @param $username
+     * @param array $poUserInfo
      * @param WebRequest $request
      * @return SessionInfo
      */
-    protected function newSessionForRequest($username, WebRequest $request)
+    protected function newSessionForRequest($poUserInfo, WebRequest $request)
     {
+        if ($poUserInfo === null || !isset($poUserInfo['user_id'])) {
+            return null;
+        }
+
+        $profile = $this->getSsoUserData($poUserInfo);
+        if ($profile === null) {
+            return null;
+        }
+
         $id = $this->getSessionIdFromCookie($request);
 
-        $user = User::newFromName($username, 'usable');
+        $user = User::newFromName($profile->{'user_id'}, 'usable');
         if (!$user) {
             throw new \InvalidArgumentException('Invalid user name');
         }
 
-        $this->initUser($user, $username);
+        $this->initUser($user, $profile);
 
         $info = new SessionInfo(SessionInfo::MAX_PRIORITY, [
             'provider' => $this,
@@ -118,9 +127,9 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
      * email address or real name from the external user database.
      *
      * @param $user User object.
-     * @param $autocreate bool
+     * @param $profile user profile
      */
-    protected function initUser(&$user, $username)
+    protected function initUser(&$user, $profile)
     {
         if (Hooks::run("AuthRemoteUserInitUser",
             array($user, true))
@@ -132,9 +141,9 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
                 $user = $user->getInstanceForUpdate();
             }
 
-            $this->setRealName($user);
+            $this->setRealName($user, $profile);
 
-            $this->setEmail($user, $username);
+            $this->setEmail($user, $profile);
 
             $user->mEmailAuthenticated = wfTimestampNow();
             $user->setToken();
@@ -149,60 +158,51 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
      * Sets the real name of the user.
      *
      * @param User
+     * @param array
      */
-    protected function setRealName(User $user)
+    protected function setRealName(User $user, $profile)
     {
-        global $wgAuthRemoteuserName;
-
-        if ($wgAuthRemoteuserName) {
-            $user->setRealName($wgAuthRemoteuserName);
-        }
+        $user->setRealName($profile->{'name'});
     }
 
     /**
-     * Return the username to be used.  Empty string if none.
+     * Return the SSO cookie data to be used as an array.  Empty array if none.
      *
-     * @return string
+     * @return array
      */
-    protected function getRemoteUsername()
+    protected function getRemoteUserInfo()
     {
-        global $wgAuthRemoteuserEnvVariable;
-        global $wgAuthRemoteuserDomain;
+        global $wgAuthProductOpenerCookieName;
 
-        if (isset($_SERVER[$wgAuthRemoteuserEnvVariable])) {
-            $username = $_SERVER[$wgAuthRemoteuserEnvVariable];
-
-            if ($wgAuthRemoteuserDomain) {
-                $username = str_replace("$wgAuthRemoteuserDomain\\",
-                    "", $username);
-                $username = str_replace("@$wgAuthRemoteuserDomain",
-                    "", $username);
+        if (isset($_COOKIE[$wgAuthProductOpenerCookieName])) {
+            $cookie = $_COOKIE[$wgAuthProductOpenerCookieName];
+            if ( $cookie === null || $cookie === '' || $cookie === 'deleted') {
+                $this->logger->notice('No session cookie found for request.');
+                return null;
             }
-        } else {
-            $username = null;
-        }
 
-        return $username;
+            $this->logger->debug('Session cookie found for request: {cookie}.',
+            [
+                'cookie' => $cookie
+            ]);
+
+            $chunks = array_chunk(preg_split('/&/', $cookie), 2);
+            $data = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+            return $data;
+        } else {
+            return null;
+        }
     }
 
     /**
      * Sets the email address of the user.
      *
      * @param User
-     * @param String username
+     * @param array user profile
      */
-    protected function setEmail(User $user, $username)
+    protected function setEmail(User $user, $profile)
     {
-        global $wgAuthRemoteuserMail, $wgAuthRemoteuserMailDomain;
-
-        if ($wgAuthRemoteuserMail) {
-            $user->setEmail($wgAuthRemoteuserMail);
-        } elseif ($wgAuthRemoteuserMailDomain) {
-            $user->setEmail($username . '@' .
-                $wgAuthRemoteuserMailDomain);
-        } else {
-            $user->setEmail($username . "@example.com");
-        }
+        $user->setEmail($profile->{'email'});
     }
 
     /**
@@ -212,10 +212,10 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
      */
     protected function setNotifications(User $user)
     {
-        global $wgAuthRemoteuserNotify;
+        global $wgAuthProductOpenerNotify;
 
         // turn on e-mail notifications
-        if ($wgAuthRemoteuserNotify) {
+        if ($wgAuthProductOpenerNotify) {
             $user->setOption('enotifwatchlistpages', 1);
             $user->setOption('enotifusertalkpages', 1);
             $user->setOption('enotifminoredits', 1);
@@ -223,5 +223,44 @@ class AuthRemoteuser extends MediaWiki\Session\ImmutableSessionProviderWithCooki
         }
     }
 
+    /**
+     * Validate SSO session id and get user profile from the Product Opener server
+     *
+     * @param array $poUserInfo
+     */
+    protected function getSsoUserData($poUserInfo)
+    {
+        global $wgAuthProductOpenerDomain;
 
+        try {
+            $url = 'https://' . $wgAuthProductOpenerDomain . '/cgi/sso.pl';
+            $this->logger->debug('Validating auth cookie {cookie} from {url}.',
+            [
+                'cookie' => $poUserInfo,
+                'url' => $url,
+             ]);
+
+            $response = Http::post( $url,  [ "postData" => $poUserInfo ] );
+            if ($response === false) {
+                $this->logger->notice('SSO response for cookie {cookie} was {response}.',
+                [
+                    'cookie' => $poUserInfo,
+                    'response' => $response,
+                ]);
+                return null;
+            }
+
+            $this->logger->debug('SSO response for cookie {cookie} was {response}.',
+            [
+                'cookie' => $poUserInfo,
+                'response' => $response,
+            ]);
+            return json_decode($response);
+        } catch (HttpException $ex) {
+            $this->logger->error('Could not retrieve user information for session cookie.',
+            [
+                'cookie' => $poUserInfo
+            ]);
+        }
+    }
 }

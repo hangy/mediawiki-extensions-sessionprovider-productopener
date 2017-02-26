@@ -1,20 +1,16 @@
 # AuthRemoteuser: A MediaWiki Extension
 
-The Auth_remoteuser extension allows integration with the web server's built-in
-authentication system via the REMOTE_USER environment variable. This variable
-is set through HTTP-Auth, LDAP, CAS, PAM, and other authentication systems.
-Using the the value of the REMOTE_USER environment variable, this extension
-automagically performs a login for this user. The value of this environment
-variable also serves as the MediaWiki username. If an account with that name does
+Based on AuthRemoteuser, this extension allows integration with the ProductOpener
+authentication system via it's session cookie. If an account with that name does
 not exist yet, one is created.
 
 ## Installation
 First, add this to your `LocalSettings.php`:
 
     ####################################################
-    # Extension: AuthRemoteuser
-    wfLoadExtension( 'AuthRemoteuser' );
-    $wgAuthRemoteuserMailDomain = 'example.com';
+    # Extension: AuthProductOpener
+    wfLoadExtension( 'AuthProductOpener' );
+    $wgAuthProductOpenerDomain = 'world.openfoodfacts.org';
     
     # If you want the extension to autocreate users not existing you have to add 
     $wgGroupPermissions['*']['autocreateaccount'] = true;
@@ -25,26 +21,10 @@ First, add this to your `LocalSettings.php`:
     $wgGroupPermissions['*']['edit']            = false;
     ####################################################
 
-Instead of `example.com`, you might want to use the domain of your organization.
-It will be appended to the username and should form a valid email address. If
-i.e. your username to login (==`REMOTE_USER`) is `jdoe`, the email of the user
-will be `jdoe@example.com`.
-
-If your environment uses a different variable then `REMOTE_USER`
-you can adjust this like so:
-
-    $wgAuthRemoteuserEnvVariable = 'HTTP_X_REMOTE_USER';
-
-## Implementation
-The constructor of AuthRemoteuser registers a hook to do the automatic login.
-Storing the AuthRemoteuser object in $wgAuth tells MediaWiki that instead of the
-MediaWiki AuthPlugin, use us for authentication. This way the plugin can handle
-the login attempts.
-
 # Original version
 
-The original version of this fork can be found on the [MediaWiki extension site]
-(https://www.mediawiki.org/wiki/Extension:Auth_remoteuser).
+The original version of this fork can be found on [GitHub]
+(https://github.com/noris-network/mediawiki-extensions-sessionprovider-remoteuser).
 
 # License (GPLv2)
 
@@ -56,7 +36,7 @@ The original version of this fork can be found on the [MediaWiki extension site]
 	Copyright 2010 Ian Ward Comfort
 	Copyright 2014 Mark A. Hershberger
 	Copyright 2015 Jonas Gröger
-	Copyright 2016 Andreas Fink
+	Copyright 2016 Andreas Fink, hangy
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
